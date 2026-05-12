@@ -3,7 +3,7 @@ services:
     name: tax-advisor
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: python app/main.py
     plan: free
     envVars:
       - key: GOOGLE_API_KEY

@@ -3,6 +3,7 @@ Tax Advisor RAG Application
 Built with FastAPI + LangChain + LlamaIndex + Qdrant + Gemini 2.5 Flash
 """
 
+import os
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -39,3 +40,8 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 @app.get("/")
 async def root():
     return FileResponse(str(STATIC_DIR / "index.html"))
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))

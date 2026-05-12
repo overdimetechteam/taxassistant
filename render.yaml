@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: tax-advisor
+    runtime: python
+    pythonVersion: "3.11.9"
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: QDRANT_CLUSTER_ENDPOINT
+        sync: false
+      - key: QDRANT_COLLECTION_NAME
+        value: tax_acts
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: EMBEDDING_MODEL
+        value: models/gemini-embedding-001
+      - key: CHUNK_SIZE
+        value: "1024"
+      - key: CHUNK_OVERLAP
+        value: "200"
+      - key: ACTS_FOLDER
+        value: ./Acts

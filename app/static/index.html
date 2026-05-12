@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sri Lanka Tax Advisor</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* ============ RESET & BASE ============ */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --navy-900: #0a1628;
+            --navy-800: #0f2240;
+            --navy-700: #142d54;
+            --navy-600: #1a3a6b;
+            --navy-500: #1e4d8f;
+            --navy-400: #2b6cb0;
+
+            --gold-600: #a8871e;
+            --gold-500: #c9a227;
+            --gold-400: #d4b43e;
+            --gold-300: #e0c655;
+            --gold-200: #ebda8a;
+            --gold-100: #f5edcb;
+
+            --white: #ffffff;
+            --gray-50: #f8f9fa;
+            --gray-100: #f1f3f5;
+            --gray-200: #e9ecef;
+            --gray-300: #dee2e6;
+            --gray-400: #ced4da;
+            --gray-500: #adb5bd;
+            --gray-600: #868e96;
+            --gray-700: #495057;
+            --gray-800: #343a40;
+            --gray-900: #212529;
+
+            --color-vat: #2563eb;
+            --color-nbt: #7c3aed;
+            --color-bng: #dc2626;
+            --color-ira: #059669;
+            --color-sscl: #d97706;
+            --color-general: #64748b;
+
+            --success: #059669;
+            --warning: #d97706;
+            --danger: #dc2626;
+
+            --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --font-mono: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+
+            --sidebar-width: 300px;
+        }
+
+        html { height: 100%; }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--gray-50);
+            color: var(--gray-800);
+            height: 100%;
+            line-height: 1.6;
+        }
+
+        /* ============ LAYOUT ============ */
+        #app {
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            min-height: 100vh;
+        }
+
+        /* ============ SIDEBAR ============ */
+        #sidebar {
+            background: var(--navy-900);
+            color: var(--gray-300);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            overflow-y: auto;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+        }
+
+        .logo-icon svg { width: 100%; height: 100%; }
+
+        .logo-text h1 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--white);
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+        }
+
+        .logo-text span {
+            font-size: 0.72rem;
+            color: var(--gold-400);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-weight: 600;
+        }
+
+        /* System Status */
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 20px;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-dot.healthy {
+            background: var(--success);
+            box-shadow: 0 0 0 0 rgba(5,150,105,0.4);
+            animation: pulse-green 2s infinite;
+        }
+
+        .status-dot.degraded { background: var(--warning); }
+        .status-dot.offline { background: var(--danger); }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(5,150,105,0.4); }
+            70% { box-shadow: 0 0 0 7px rgba(5,150,105,0); }
+            100% { box-shadow: 0 0 0 0 rgba(5,150,105,0); }
+        }
+
+        .status-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .status-label {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--gray-500);
+        }
+
+        .status-value {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--gray-200);
+        }
+
+        .doc-count {
+            margin-left: auto;
+            font-size: 0.7rem;
+            color: var(--gray-500);
+            white-space: nowrap;
+        }
+
+        /* Sidebar sections */
+        .sidebar-section {
+            padding: 18px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .sidebar-section-title {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--gray-500);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        /* Tax Filters */
+        .tax-filters {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .tax-filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--gray-400);
+            font-size: 0.82rem;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: left;
+        }
+
+        .tax-filter-btn:hover { background: rgba(255,255,255,0.06); color: var(--gray-200); }
+        .tax-filter-btn.active { background: rgba(255,255,255,0.1); color: var(--white); font-weight: 600; }
+
+        .filter-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--badge-color);
+            flex-shrink: 0;
+        }
+
+        /* Query History */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .section-header .sidebar-section-title { margin-bottom: 0; }
+
+        .clear-history-btn {
+            border: none;
+            background: none;
+            color: var(--gray-600);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            transition: color 0.15s;
+        }
+
+        .clear-history-btn:hover { color: var(--danger); }
+
+        .query-history {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .query-history::-webkit-scrollbar { width: 4px; }
+        .query-history::-webkit-scrollbar-track { background: transparent; }
+        .query-history::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+        .empty-history {
+            font-size: 0.78rem;
+            color: var(--gray-600);
+            font-style: italic;
+        }
+
+        .history-item {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            padding: 8px 10px;
+            border: none;
+            border-radius: 5px;
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.15s;
+            font-family: var(--font-sans);
+        }
+
+        .history-item:hover { background: rgba(255,255,255,0.06); }
+
+        .history-text {
+            font-size: 0.8rem;
+            color: var(--gray-300);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.4;
+        }
+
+        .history-time {
+            font-size: 0.65rem;
+            color: var(--gray-600);
+            margin-top: 2px;
+        }
+
+        /* ============ MAIN CONTENT ============ */
+        #main-content {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        #app-header {
+            display: flex;
+            align-items: center;
+            padding: 0 32px;
+            height: 64px;
+            background: var(--white);
+            border-bottom: 1px solid var(--gray-200);
+            flex-shrink: 0;
+        }
+
+        .sidebar-toggle {
+            display: none;
+            border: none;
+            background: none;
+            color: var(--gray-700);
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 12px;
+            border-radius: 6px;
+        }
+
+        .sidebar-toggle:hover { background: var(--gray-100); }
+
+        .header-title { flex: 1; }
+
+        .header-title h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--navy-800);
+            line-height: 1.2;
+        }
+
+        .header-subtitle {
+            font-size: 0.72rem;
+            color: var(--gray-500);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-icon {
+            border: 1px solid var(--gray-200);
+            background: var(--white);
+            color: var(--gray-600);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .btn-icon:hover:not(:disabled) {
+            background: var(--gray-50);
+            color: var(--navy-700);
+            border-color: var(--gray-300);
+        }
+
+        .btn-icon:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-icon.copied { border-color: var(--success); color: var(--success); }
+
+        .btn-icon svg { width: 18px; height: 18px; }
+
+        /* ============ QUERY SECTION ============ */
+        #query-section {
+            padding: 28px 32px 8px;
+        }
+
+        .query-card {
+            background: var(--white);
+            border-radius: 10px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            border-left: 4px solid var(--gold-500);
+        }
+
+        .query-label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--navy-700);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .query-input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        #query-input {
+            flex: 1;
+            border: 1.5px solid var(--gray-300);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            font-family: var(--font-sans);
+            color: var(--gray-900);
+            resize: vertical;
+            min-height: 52px;
+            line-height: 1.5;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        #query-input:focus {
+            outline: none;
+            border-color: var(--navy-500);
+            box-shadow: 0 0 0 3px rgba(30,77,143,0.1);
+        }
+
+        #query-input::placeholder { color: var(--gray-400); }
+        #query-input:disabled { background: var(--gray-50); }
+
+        .btn-submit {
+            flex-shrink: 0;
+            height: 52px;
+            padding: 0 28px;
+            border: none;
+            border-radius: 8px;
+            background: var(--navy-700);
+            color: var(--white);
+            font-size: 0.92rem;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            letter-spacing: 0.02em;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--navy-600), var(--navy-700));
+            box-shadow: 0 2px 8px rgba(20,45,84,0.3);
+        }
+
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        .btn-loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: var(--white);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Example Prompts */
+        .example-prompts {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .example-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .example-btn {
+            padding: 5px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: 20px;
+            background: var(--white);
+            color: var(--navy-700);
+            font-size: 0.78rem;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .example-btn:hover {
+            background: var(--gold-100);
+            border-color: var(--gold-400);
+            color: var(--navy-800);
+        }
+
+        /* ============ RESULTS SECTION ============ */
+        #results-section {
+            padding: 20px 32px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Tax Type Badges Row */
+        .tax-types-bar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tax-types-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-right: 4px;
+        }
+
+        .tax-type-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            background: color-mix(in srgb, var(--pill-color) 10%, white);
+            color: var(--pill-color);
+            border: 1px solid color-mix(in srgb, var(--pill-color) 25%, transparent);
+        }
+
+        /* Analysis Card */
+        .analysis-card {
+            background: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+            overflow: hidden;
+        }
+
+        .analysis-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            background: var(--gray-50);
+        }
+
+        .analysis-header h3 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--navy-800);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .analysis-header h3 svg { width: 18px; height: 18px; color: var(--gold-500); }
+
+        .analysis-timestamp {
+            font-size: 0.72rem;
+            color: var(--gray-500);
+        }
+
+        .analysis-summary {
+            padding: 20px 24px;
+            font-size: 0.92rem;
+            line-height: 1.75;
+            color: var(--gray-800);
+        }
+
+        .analysis-summary h2 {
+            font-size: 1.0rem;
+            font-weight: 700;
+            color: var(--navy-800);
+            margin: 0 0 14px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--gold-300);
+        }
+
+        .analysis-summary p { margin-bottom: 10px; }
+
+        .analysis-summary ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .analysis-summary li {
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--gray-50), white);
+            border-left: 4px solid var(--gold-400);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.88rem;
+            line-height: 1.65;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .analysis-summary li strong {
+            color: var(--navy-900);
+        }
+
+        .analysis-detail-divider {
+            height: 2px;
+            background: linear-gradient(to right, var(--gold-400), var(--gold-200), transparent);
+            margin: 0 24px;
+        }
+
+        .analysis-body {
+            padding: 24px;
+            font-size: 0.92rem;
+            line-height: 1.75;
+            color: var(--gray-800);
+        }
+
+        .analysis-expand-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px 24px;
+            border: none;
+            border-top: 1px solid var(--gray-100);
+            background: var(--gray-50);
+            color: var(--navy-600);
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .analysis-expand-btn:hover {
+            background: var(--gold-100);
+            color: var(--navy-800);
+        }
+
+        .expand-icon {
+            font-size: 0.65rem;
+            transition: transform 0.25s ease;
+        }
+
+        .analysis-expand-btn.open .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Markdown content styling (shared between summary and detail) */
+        .analysis-body h1, .analysis-body h2, .analysis-body h3, .analysis-body h4 {
+            color: var(--navy-800);
+            margin-top: 24px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid var(--gold-200);
+            line-height: 1.3;
+        }
+
+        .analysis-body h1 { font-size: 1.2rem; }
+        .analysis-body h2 { font-size: 1.08rem; }
+        .analysis-body h3 { font-size: 0.98rem; border-bottom-width: 1px; }
+        .analysis-body h4 { font-size: 0.92rem; border-bottom: none; }
+        .analysis-body h1:first-child, .analysis-body h2:first-child, .analysis-body h3:first-child { margin-top: 0; }
+
+        .analysis-body p { margin-bottom: 12px; }
+
+        .analysis-body ul, .analysis-body ol {
+            border-left: 3px solid var(--gold-300);
+            padding-left: 24px;
+            margin: 10px 0;
+        }
+
+        .analysis-body li { margin-bottom: 6px; }
+
+        .analysis-body strong, .analysis-summary strong { color: var(--navy-900); }
+
+        .analysis-body blockquote {
+            border-left: 4px solid var(--gold-400);
+            background: var(--gold-100);
+            padding: 10px 16px;
+            margin: 14px 0;
+            border-radius: 0 6px 6px 0;
+            font-style: italic;
+            color: var(--gray-700);
+        }
+
+        .analysis-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 14px 0;
+            font-size: 0.88rem;
+        }
+
+        .analysis-body th {
+            background: var(--navy-800);
+            color: var(--white);
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.82rem;
+        }
+
+        .analysis-body td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .analysis-body tr:nth-child(even) td { background: var(--gray-50); }
+
+        .analysis-body code {
+            background: var(--gray-100);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.85em;
+            font-family: var(--font-mono);
+        }
+
+        .analysis-body hr {
+            border: none;
+            border-top: 1px solid var(--gray-200);
+            margin: 20px 0;
+        }
+
+        /* Tax rate highlighting */
+        .tax-rate {
+            background: linear-gradient(135deg, var(--gold-100), var(--gold-200));
+            color: var(--navy-900);
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--gold-400);
+            font-family: var(--font-mono);
+            font-size: 0.92em;
+            white-space: nowrap;
+        }
+
+        /* Section reference highlighting */
+        .section-ref {
+            color: var(--navy-600);
+            font-weight: 600;
+            border-bottom: 1px dashed var(--navy-400);
+        }
+
+        /* ============ SOURCES PANEL ============ */
+        .sources-panel {
+            background: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+
+        .sources-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 14px 24px;
+            border: none;
+            background: var(--white);
+            cursor: pointer;
+            font-family: var(--font-sans);
+            transition: background 0.15s;
+        }
+
+        .sources-toggle:hover { background: var(--gray-50); }
+
+        .sources-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--navy-800);
+        }
+
+        .sources-title svg { width: 18px; height: 18px; color: var(--navy-600); }
+
+        .sources-count {
+            background: var(--navy-800);
+            color: var(--white);
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            min-width: 22px;
+            text-align: center;
+        }
+
+        .chevron {
+            font-size: 0.7rem;
+            color: var(--gray-400);
+            transition: transform 0.25s ease;
+        }
+
+        .chevron.open { transform: rotate(180deg); }
+
+        .sources-list {
+            padding: 4px 20px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .source-card {
+            border: 1px solid var(--gray-200);
+            border-left: 3px solid var(--source-color, var(--gray-400));
+            border-radius: 6px;
+            padding: 12px 16px;
+            transition: box-shadow 0.15s;
+        }
+
+        .source-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+        .source-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .source-act-name {
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: var(--navy-800);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+
+        .source-year {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--gold-600);
+            background: var(--gold-100);
+            padding: 2px 8px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+
+        .source-meta {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .source-tax-pill {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--pill-color, var(--gray-600));
+            background: color-mix(in srgb, var(--pill-color, var(--gray-400)) 10%, white);
+            padding: 2px 10px;
+            border-radius: 10px;
+            letter-spacing: 0.04em;
+        }
+
+        .source-detail {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .source-detail::before {
+            content: "\00b7";
+            margin-right: 8px;
+            color: var(--gray-300);
+        }
+
+        .source-preview-wrapper { position: relative; }
+
+        .source-preview {
+            font-size: 0.78rem;
+            color: var(--gray-600);
+            line-height: 1.5;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .source-preview-wrapper.expanded .source-preview {
+            -webkit-line-clamp: unset;
+            display: block;
+            overflow: visible;
+        }
+
+        .source-expand-btn {
+            border: none;
+            background: none;
+            color: var(--navy-500);
+            font-size: 0.72rem;
+            cursor: pointer;
+            padding: 4px 0;
+            font-weight: 600;
+            font-family: var(--font-sans);
+        }
+
+        .source-expand-btn:hover { text-decoration: underline; }
+
+        .source-preview-wrapper.expanded .source-expand-btn::after { content: none; }
+
+        /* ============ LOADING OVERLAY ============ */
+        .loading-overlay {
+            position: absolute;
+            inset: 64px 0 0 0;
+            background: rgba(248,249,250,0.85);
+            backdrop-filter: blur(3px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+
+        .loading-content {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--gray-200);
+            border-top-color: var(--navy-700);
+            border-right-color: var(--gold-500);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .loading-text {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--navy-800);
+        }
+
+        .loading-subtext {
+            font-size: 0.82rem;
+            color: var(--gray-500);
+        }
+
+        /* ============ ERROR BANNER ============ */
+        .error-banner {
+            margin: 20px 32px 0;
+            padding: 14px 20px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-left: 4px solid var(--danger);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.88rem;
+            color: #991b1b;
+        }
+
+        .error-icon { font-size: 1.1rem; }
+
+        .error-message { flex: 1; }
+
+        .error-dismiss {
+            border: none;
+            background: none;
+            font-size: 1.2rem;
+            color: #991b1b;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            line-height: 1;
+        }
+
+        .error-dismiss:hover { background: rgba(153,27,27,0.1); }
+
+        /* ============ WELCOME STATE ============ */
+        .welcome-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 32px;
+            text-align: center;
+            flex: 1;
+        }
+
+        .welcome-icon {
+            width: 64px;
+            height: 64px;
+            color: var(--gold-400);
+            margin-bottom: 20px;
+            opacity: 0.6;
+        }
+
+        .welcome-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--navy-700);
+            margin-bottom: 8px;
+        }
+
+        .welcome-desc {
+            font-size: 0.88rem;
+            color: var(--gray-500);
+            max-width: 420px;
+            line-height: 1.6;
+        }
+
+        /* ============ SIDEBAR OVERLAY (mobile) ============ */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 99;
+        }
+
+        .sidebar-overlay.visible { display: block; }
+
+        /* ============ RESPONSIVE ============ */
+        @media (max-width: 900px) {
+            #app { grid-template-columns: 1fr; }
+
+            #sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                transform: translateX(-100%);
+                width: var(--sidebar-width);
+                box-shadow: 4px 0 20px rgba(0,0,0,0.2);
+            }
+
+            #sidebar.open { transform: translateX(0); }
+
+            .sidebar-toggle { display: flex; }
+
+            #query-section, #results-section { padding-left: 20px; padding-right: 20px; }
+            #app-header { padding: 0 20px; }
+            .error-banner { margin-left: 20px; margin-right: 20px; }
+
+            .query-input-wrapper { flex-direction: column; }
+            .btn-submit { width: 100%; }
+
+            .example-prompts { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+            .example-btn { flex-shrink: 0; }
+        }
+
+        /* ============ SCROLLBAR ============ */
+        #main-content::-webkit-scrollbar { width: 6px; }
+        #main-content::-webkit-scrollbar-track { background: transparent; }
+        #main-content::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar Overlay (mobile) -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Sidebar -->
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="4" y="38" width="40" height="4" rx="1" fill="#c9a227"/>
+                            <rect x="6" y="34" width="36" height="3" rx="1" fill="#1a3a6b"/>
+                            <rect x="10" y="16" width="5" height="18" rx="1" fill="#e0c655"/>
+                            <rect x="21.5" y="16" width="5" height="18" rx="1" fill="#e0c655"/>
+                            <rect x="33" y="16" width="5" height="18" rx="1" fill="#e0c655"/>
+                            <polygon points="24,2 4,14 44,14" fill="#142d54"/>
+                            <polygon points="24,5 9,13 39,13" fill="#1a3a6b"/>
+                        </svg>
+                    </div>
+                    <div class="logo-text">
+                        <h1>Tax Advisor</h1>
+                        <span>Sri Lanka</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="system-status" id="system-status">
+                <div class="status-dot" id="status-dot"></div>
+                <div class="status-info">
+                    <span class="status-label">System</span>
+                    <span class="status-value" id="status-text">Checking...</span>
+                </div>
+                <span class="doc-count" id="doc-count"></span>
+            </div>
+
+            <!-- Tax Category Filters -->
+            <div class="sidebar-section">
+                <h3 class="sidebar-section-title">Tax Categories</h3>
+                <div class="tax-filters" id="tax-filters">
+                    <button class="tax-filter-btn active" data-filter="all">All Types</button>
+                    <button class="tax-filter-btn" data-filter="VAT" style="--badge-color: var(--color-vat)">
+                        <span class="filter-dot"></span>Value Added Tax
+                    </button>
+                    <button class="tax-filter-btn" data-filter="NBT" style="--badge-color: var(--color-nbt)">
+                        <span class="filter-dot"></span>Nation Building Tax
+                    </button>
+                    <button class="tax-filter-btn" data-filter="BNG" style="--badge-color: var(--color-bng)">
+                        <span class="filter-dot"></span>Betting &amp; Gaming
+                    </button>
+                    <button class="tax-filter-btn" data-filter="IRA" style="--badge-color: var(--color-ira)">
+                        <span class="filter-dot"></span>Income Tax (IRA)
+                    </button>
+                    <button class="tax-filter-btn" data-filter="SSCL" style="--badge-color: var(--color-sscl)">
+                        <span class="filter-dot"></span>SSCL
+                    </button>
+                </div>
+            </div>
+
+            <!-- Query History -->
+            <div class="sidebar-section" style="flex:1; border-bottom:none;">
+                <div class="section-header">
+                    <h3 class="sidebar-section-title">Recent Queries</h3>
+                    <button class="clear-history-btn" id="clear-history" title="Clear history">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </div>
+                <div class="query-history" id="query-history">
+                    <p class="empty-history">No queries yet</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Header -->
+            <header id="app-header">
+                <button class="sidebar-toggle" id="sidebar-toggle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <div class="header-title">
+                    <h2>Tax Scenario Analysis</h2>
+                    <p class="header-subtitle">Powered by OverdimeTechnologies pvt ltd &middot; Gemini 2.5 Flash</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-icon" id="btn-export" title="Export as Markdown" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </button>
+                    <button class="btn-icon" id="btn-copy" title="Copy analysis" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Query Input -->
+            <section id="query-section">
+                <div class="query-card">
+                    <label class="query-label" for="query-input">Describe your tax scenario</label>
+                    <div class="query-input-wrapper">
+                        <textarea id="query-input" rows="3" placeholder="e.g., I am importing leather shoes from Italy to sell in Sri Lanka. What are all the tax implications?"></textarea>
+                        <button class="btn-submit" id="btn-submit">
+                            <span class="btn-text">Analyze</span>
+                            <span class="btn-loading" style="display:none;">
+                                <span class="btn-spinner"></span>
+                                Analyzing...
+                            </span>
+                        </button>
+                    </div>
+                    <div class="example-prompts">
+                        <span class="example-label">Try:</span>
+                        <button class="example-btn" data-query="I am importing leather shoes from Italy to sell in Sri Lanka. What are all the tax implications?">Importing leather shoes</button>
+                        <button class="example-btn" data-query="I run a restaurant in Colombo with annual revenue of 50 million LKR. What taxes do I need to pay?">Restaurant in Colombo</button>
+                        <button class="example-btn" data-query="What are the tax implications for starting an online betting platform in Sri Lanka?">Online betting platform</button>
+                        <button class="example-btn" data-query="I am exporting tea from Sri Lanka. What tax benefits or exemptions apply?">Exporting tea</button>
+                        <button class="example-btn" data-query="What is the SSCL rate for a manufacturing company with 200 employees?">SSCL for manufacturing</button>
+                        <button class="example-btn" data-query="What VAT exemptions apply to essential food items in Sri Lanka?">VAT on food items</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Welcome State (shown when no results) -->
+            <div class="welcome-state" id="welcome-state">
+                <svg class="welcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                </svg>
+                <p class="welcome-title">Enter a tax scenario to begin</p>
+                <p class="welcome-desc">Describe your business situation and get a comprehensive analysis of all applicable taxes, rates, exemptions, and legislative references from Sri Lankan tax acts.</p>
+            </div>
+
+            <!-- Results Section (hidden initially) -->
+            <section id="results-section" style="display:none;">
+                <!-- Tax Type Badges -->
+                <div class="tax-types-bar" id="tax-types-bar">
+                    <span class="tax-types-label">Taxes identified:</span>
+                </div>
+
+                <!-- Analysis Card -->
+                <div class="analysis-card">
+                    <div class="analysis-header">
+                        <h3>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                            Tax Analysis
+                        </h3>
+                        <span class="analysis-timestamp" id="analysis-timestamp"></span>
+                    </div>
+                    <!-- Summary (always visible) -->
+                    <div class="analysis-summary" id="analysis-summary"></div>
+                    <!-- Detailed analysis (hidden by default) -->
+                    <div class="analysis-detail" id="analysis-detail" style="display:none;">
+                        <div class="analysis-detail-divider"></div>
+                        <div class="analysis-body" id="analysis-body"></div>
+                    </div>
+                    <button class="analysis-expand-btn" id="analysis-expand-btn" style="display:none;">
+                        <span class="expand-icon">&#9660;</span> Show detailed analysis
+                    </button>
+                </div>
+
+                <!-- Sources Panel -->
+                <div class="sources-panel">
+                    <button class="sources-toggle" id="sources-toggle">
+                        <span class="sources-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                            Legislative Sources
+                            <span class="sources-count" id="sources-count">0</span>
+                        </span>
+                        <span class="chevron" id="sources-chevron">&#9660;</span>
+                    </button>
+                    <div class="sources-list" id="sources-list" style="display:none;"></div>
+                </div>
+            </section>
+
+            <!-- Loading Overlay -->
+            <div class="loading-overlay" id="loading-overlay" style="display:none;">
+                <div class="loading-content">
+                    <div class="loading-spinner"></div>
+                    <p class="loading-text">Analyzing tax implications...</p>
+                    <p class="loading-subtext">Searching through Sri Lankan tax legislation</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        // ============ CONFIG ============
+        const API_BASE = window.location.origin + '/api/v1';
+        const HISTORY_KEY = 'tax_advisor_history';
+        const MAX_HISTORY = 20;
+
+        const TAX_TYPE_CONFIG = {
+            'Value Added Tax':                   { code: 'VAT',  color: '#2563eb' },
+            'Nation Building Tax':               { code: 'NBT',  color: '#7c3aed' },
+            'Betting and Gaming Levy':           { code: 'BNG',  color: '#dc2626' },
+            'Inland Revenue Act':                { code: 'IRA',  color: '#059669' },
+            'Social Security Contribution Levy': { code: 'SSCL', color: '#d97706' },
+            'General Tax':                       { code: 'GEN',  color: '#64748b' },
+        };
+
+        // ============ STATE ============
+        let currentResult = null;
+        let isLoading = false;
+
+        // ============ DOM ============
+        const $ = (s) => document.querySelector(s);
+        const $$ = (s) => document.querySelectorAll(s);
+
+        const el = {
+            queryInput:     $('#query-input'),
+            btnSubmit:      $('#btn-submit'),
+            resultsSection: $('#results-section'),
+            welcomeState:   $('#welcome-state'),
+            analysisSummary: $('#analysis-summary'),
+            analysisDetail: $('#analysis-detail'),
+            analysisBody:   $('#analysis-body'),
+            taxTypesBar:    $('#tax-types-bar'),
+            sourcesList:    $('#sources-list'),
+            sourcesCount:   $('#sources-count'),
+            sourcesToggle:  $('#sources-toggle'),
+            sourcesChevron: $('#sources-chevron'),
+            loadingOverlay: $('#loading-overlay'),
+            statusDot:      $('#status-dot'),
+            statusText:     $('#status-text'),
+            docCount:       $('#doc-count'),
+            queryHistory:   $('#query-history'),
+            clearHistory:   $('#clear-history'),
+            btnExport:      $('#btn-export'),
+            btnCopy:        $('#btn-copy'),
+            sidebarToggle:  $('#sidebar-toggle'),
+            sidebar:        $('#sidebar'),
+            sidebarOverlay: $('#sidebar-overlay'),
+            timestamp:      $('#analysis-timestamp'),
+            analysisExpandBtn: $('#analysis-expand-btn'),
+        };
+
+        // ============ API ============
+        async function queryTaxAdvisor(query, topK) {
+            const res = await fetch(API_BASE + '/query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query, top_k: topK || 15 }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Request failed (' + res.status + ')');
+            }
+            return res.json();
+        }
+
+        async function checkHealth() {
+            try {
+                const res = await fetch(API_BASE + '/health');
+                if (!res.ok) throw new Error();
+                return await res.json();
+            } catch {
+                return { status: 'offline', vector_store: 'disconnected', documents_count: 0 };
+            }
+        }
+
+        // ============ MARKDOWN ============
+        function renderMarkdown(text) {
+            if (typeof marked !== 'undefined') {
+                marked.setOptions({ breaks: true, gfm: true });
+                let html = marked.parse(text);
+                // Highlight tax rates
+                html = html.replace(/(\d+(?:\.\d+)?)\s*(%)/g, '<span class="tax-rate">$1$2</span>');
+                // Highlight section references
+                html = html.replace(/(Section\s+\d+[A-Za-z]*(?:\(\d+\)(?:\([a-z]\))?)?)/gi, '<span class="section-ref">$1</span>');
+                return html;
+            }
+            // Fallback: plain text
+            return '<pre style="white-space:pre-wrap;">' + escapeHtml(text) + '</pre>';
+        }
+
+        // ============ RENDER ============
+        function renderTaxBadges(taxTypes) {
+            el.taxTypesBar.innerHTML = '<span class="tax-types-label">Taxes identified:</span>';
+            taxTypes.forEach(function(type) {
+                var cfg = TAX_TYPE_CONFIG[type] || { code: '?', color: '#64748b' };
+                var pill = document.createElement('span');
+                pill.className = 'tax-type-pill';
+                pill.style.setProperty('--pill-color', cfg.color);
+                pill.textContent = type;
+                pill.dataset.taxType = cfg.code;
+                el.taxTypesBar.appendChild(pill);
+            });
+        }
+
+        function renderSources(sources) {
+            el.sourcesList.innerHTML = '';
+            el.sourcesCount.textContent = sources.length;
+
+            sources.forEach(function(src) {
+                var cfg = TAX_TYPE_CONFIG[src.tax_type] || { code: '?', color: '#64748b' };
+                var card = document.createElement('div');
+                card.className = 'source-card';
+                card.style.setProperty('--source-color', cfg.color);
+                card.dataset.taxType = cfg.code;
+
+                var yearHtml = src.year ? '<span class="source-year">' + src.year + '</span>' : '';
+                var actNoHtml = src.act_number ? '<span class="source-detail">Act No. ' + escapeHtml(src.act_number) + '</span>' : '';
+                var sectionHtml = src.section ? '<span class="source-detail">' + escapeHtml(src.section) + '</span>' : '';
+                var pageHtml = src.page ? '<span class="source-detail">Page ' + src.page + '</span>' : '';
+
+                card.innerHTML =
+                    '<div class="source-header">' +
+                        '<span class="source-act-name">' + escapeHtml(src.act_name) + '</span>' +
+                        yearHtml +
+                    '</div>' +
+                    '<div class="source-meta">' +
+                        '<span class="source-tax-pill" style="--pill-color:' + cfg.color + '">' + cfg.code + '</span>' +
+                        actNoHtml + sectionHtml + pageHtml +
+                    '</div>' +
+                    '<div class="source-preview-wrapper">' +
+                        '<p class="source-preview">' + escapeHtml(src.content_preview) + '</p>' +
+                        '<button class="source-expand-btn">Show more</button>' +
+                    '</div>';
+
+                // Expand/collapse handler
+                var expandBtn = card.querySelector('.source-expand-btn');
+                expandBtn.addEventListener('click', function() {
+                    var wrapper = this.parentElement;
+                    var expanded = wrapper.classList.toggle('expanded');
+                    this.textContent = expanded ? 'Show less' : 'Show more';
+                });
+
+                el.sourcesList.appendChild(card);
+            });
+        }
+
+        function renderResults(data) {
+            currentResult = data;
+
+            el.welcomeState.style.display = 'none';
+            el.resultsSection.style.display = 'flex';
+
+            renderTaxBadges(data.tax_types_identified);
+
+            // Render summary (always visible)
+            if (data.summary) {
+                el.analysisSummary.innerHTML = renderMarkdown(data.summary);
+                el.analysisSummary.style.display = 'block';
+            } else {
+                el.analysisSummary.style.display = 'none';
+            }
+
+            // Render detailed analysis (hidden behind Show more)
+            if (data.detailed_analysis) {
+                el.analysisBody.innerHTML = renderMarkdown(data.detailed_analysis);
+                el.analysisDetail.style.display = 'none';
+                el.analysisExpandBtn.style.display = 'flex';
+                el.analysisExpandBtn.classList.remove('open');
+                el.analysisExpandBtn.innerHTML = '<span class="expand-icon">&#9660;</span> Show detailed analysis';
+            } else {
+                el.analysisDetail.style.display = 'none';
+                el.analysisExpandBtn.style.display = 'none';
+            }
+
+            // Fallback: if no summary, show detail directly
+            if (!data.summary && data.detailed_analysis) {
+                el.analysisBody.innerHTML = renderMarkdown(data.detailed_analysis);
+                el.analysisDetail.style.display = 'block';
+                el.analysisExpandBtn.style.display = 'none';
+            }
+
+            renderSources(data.sources);
+
+            el.timestamp.textContent = new Date().toLocaleString('en-US', {
+                dateStyle: 'medium', timeStyle: 'short'
+            });
+
+            el.btnExport.disabled = false;
+            el.btnCopy.disabled = false;
+
+            el.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ============ LOADING ============
+        function setLoading(loading) {
+            isLoading = loading;
+            el.loadingOverlay.style.display = loading ? 'flex' : 'none';
+            el.btnSubmit.querySelector('.btn-text').style.display = loading ? 'none' : 'inline';
+            el.btnSubmit.querySelector('.btn-loading').style.display = loading ? 'inline-flex' : 'none';
+            el.btnSubmit.disabled = loading;
+            el.queryInput.disabled = loading;
+        }
+
+        // ============ SUBMIT ============
+        async function handleSubmit() {
+            var query = el.queryInput.value.trim();
+            if (!query || isLoading) return;
+
+            setLoading(true);
+            hideError();
+
+            try {
+                var result = await queryTaxAdvisor(query);
+                renderResults(result);
+                addToHistory(query);
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // ============ ERRORS ============
+        function showError(message) {
+            hideError();
+            var banner = document.createElement('div');
+            banner.id = 'error-banner';
+            banner.className = 'error-banner';
+            banner.innerHTML =
+                '<span class="error-icon">&#9888;</span>' +
+                '<span class="error-message">' + escapeHtml(message) + '</span>' +
+                '<button class="error-dismiss">&times;</button>';
+            banner.querySelector('.error-dismiss').addEventListener('click', function() { banner.remove(); });
+            el.resultsSection.parentElement.insertBefore(banner, el.welcomeState);
+        }
+
+        function hideError() {
+            var existing = $('#error-banner');
+            if (existing) existing.remove();
+        }
+
+        // ============ HISTORY ============
+        function getHistory() {
+            try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+            catch { return []; }
+        }
+
+        function addToHistory(query) {
+            var history = getHistory().filter(function(h) { return h.query !== query; });
+            history.unshift({ query: query, timestamp: Date.now() });
+            history = history.slice(0, MAX_HISTORY);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            var history = getHistory();
+            if (!history.length) {
+                el.queryHistory.innerHTML = '<p class="empty-history">No queries yet</p>';
+                return;
+            }
+            el.queryHistory.innerHTML = history.map(function(h) {
+                return '<button class="history-item" title="' + escapeHtml(h.query) + '">' +
+                    '<span class="history-text">' + escapeHtml(h.query) + '</span>' +
+                    '<span class="history-time">' + timeAgo(h.timestamp) + '</span>' +
+                '</button>';
+            }).join('');
+
+            el.queryHistory.querySelectorAll('.history-item').forEach(function(btn, i) {
+                btn.addEventListener('click', function() {
+                    el.queryInput.value = history[i].query;
+                    closeSidebar();
+                    handleSubmit();
+                });
+            });
+        }
+
+        function timeAgo(ts) {
+            var diff = Date.now() - ts;
+            var mins = Math.floor(diff / 60000);
+            if (mins < 1) return 'Just now';
+            if (mins < 60) return mins + 'm ago';
+            var hrs = Math.floor(mins / 60);
+            if (hrs < 24) return hrs + 'h ago';
+            return Math.floor(hrs / 24) + 'd ago';
+        }
+
+        // ============ EXPORT / COPY ============
+        function buildExportText() {
+            if (!currentResult) return '';
+            var r = currentResult;
+            var t = '# Tax Analysis\n\n';
+            t += '**Query:** ' + r.query + '\n\n';
+            t += '**Date:** ' + new Date().toLocaleString() + '\n\n';
+            t += '**Tax Types Identified:** ' + r.tax_types_identified.join(', ') + '\n\n---\n\n';
+            if (r.summary) t += '## Summary\n\n' + r.summary + '\n\n---\n\n';
+            if (r.detailed_analysis) t += '## Detailed Analysis\n\n' + r.detailed_analysis;
+            t += '\n\n---\n\n## Sources\n\n';
+            r.sources.forEach(function(s, i) {
+                t += (i + 1) + '. **' + s.act_name + '**';
+                if (s.year) t += ' (' + s.year + ')';
+                t += ' - ' + s.tax_type;
+                if (s.section) t += ' | ' + s.section;
+                if (s.page) t += ' | Page ' + s.page;
+                t += '\n';
+            });
+            return t;
+        }
+
+        function exportAnalysis() {
+            var content = buildExportText();
+            if (!content) return;
+            var blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'tax-analysis-' + new Date().toISOString().slice(0, 10) + '.md';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function copyAnalysis() {
+            var content = buildExportText();
+            if (!content) return;
+            navigator.clipboard.writeText(content).then(function() {
+                el.btnCopy.classList.add('copied');
+                el.btnCopy.title = 'Copied!';
+                setTimeout(function() {
+                    el.btnCopy.classList.remove('copied');
+                    el.btnCopy.title = 'Copy analysis';
+                }, 2000);
+            });
+        }
+
+        // ============ SIDEBAR FILTERS ============
+        function applyTaxFilter(code) {
+            $$('.tax-filter-btn').forEach(function(btn) {
+                btn.classList.toggle('active', btn.dataset.filter === code);
+            });
+            $$('.source-card').forEach(function(card) {
+                card.style.display = (code === 'all' || card.dataset.taxType === code) ? '' : 'none';
+            });
+        }
+
+        // ============ SIDEBAR MOBILE ============
+        function closeSidebar() {
+            el.sidebar.classList.remove('open');
+            el.sidebarOverlay.classList.remove('visible');
+        }
+
+        // ============ HEALTH ============
+        async function updateHealth() {
+            var h = await checkHealth();
+            if (h.status === 'healthy') {
+                el.statusDot.className = 'status-dot healthy';
+                el.statusText.textContent = 'Online';
+                el.docCount.textContent = h.documents_count.toLocaleString() + ' chunks';
+            } else if (h.status === 'degraded') {
+                el.statusDot.className = 'status-dot degraded';
+                el.statusText.textContent = 'Degraded';
+                el.docCount.textContent = '';
+            } else {
+                el.statusDot.className = 'status-dot offline';
+                el.statusText.textContent = 'Offline';
+                el.docCount.textContent = 'Server unreachable';
+            }
+        }
+
+        // ============ UTIL ============
+        function escapeHtml(str) {
+            var d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        // ============ INIT ============
+        function init() {
+            // Submit
+            el.btnSubmit.addEventListener('click', handleSubmit);
+            el.queryInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                }
+            });
+
+            // Example prompts
+            $$('.example-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    el.queryInput.value = this.dataset.query;
+                    el.queryInput.focus();
+                });
+            });
+
+            // Analysis expand/collapse
+            el.analysisExpandBtn.addEventListener('click', function() {
+                var isHidden = el.analysisDetail.style.display === 'none';
+                el.analysisDetail.style.display = isHidden ? 'block' : 'none';
+                this.classList.toggle('open', isHidden);
+                this.innerHTML = isHidden
+                    ? '<span class="expand-icon">&#9660;</span> Hide detailed analysis'
+                    : '<span class="expand-icon">&#9660;</span> Show detailed analysis';
+            });
+
+            // Sources toggle
+            el.sourcesToggle.addEventListener('click', function() {
+                var open = el.sourcesList.style.display !== 'none';
+                el.sourcesList.style.display = open ? 'none' : 'block';
+                el.sourcesChevron.classList.toggle('open', !open);
+            });
+
+            // Sidebar mobile toggle
+            el.sidebarToggle.addEventListener('click', function() {
+                el.sidebar.classList.add('open');
+                el.sidebarOverlay.classList.add('visible');
+            });
+            el.sidebarOverlay.addEventListener('click', closeSidebar);
+
+            // Tax filters
+            $$('.tax-filter-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    applyTaxFilter(this.dataset.filter);
+                });
+            });
+
+            // Export / Copy
+            el.btnExport.addEventListener('click', exportAnalysis);
+            el.btnCopy.addEventListener('click', copyAnalysis);
+
+            // Clear history
+            el.clearHistory.addEventListener('click', function() {
+                localStorage.removeItem(HISTORY_KEY);
+                renderHistory();
+            });
+
+            // Boot
+            renderHistory();
+            updateHealth();
+            setInterval(updateHealth, 30000);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    })();
+    </script>
+</body>
+</html>

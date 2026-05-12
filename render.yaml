@@ -2,7 +2,7 @@ services:
   - type: web
     name: tax-advisor
     runtime: python
-    pythonVersion: "3.12"
+    pythonVersion: "3.14.3"
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     plan: free

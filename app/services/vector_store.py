@@ -16,7 +16,7 @@ from qdrant_client.models import (
 )
 from langchain_qdrant import QdrantVectorStore
 
-from app.core.config import (
+from core.config import (
     GOOGLE_API_KEY,
     EMBEDDING_MODEL,
     QDRANT_API_KEY,

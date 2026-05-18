@@ -11,7 +11,7 @@ import fitz  # pymupdf
 from llama_index.core import Document
 from llama_index.core.node_parser import SentenceSplitter
 
-from app.core.config import ACTS_FOLDER, CHUNK_SIZE, CHUNK_OVERLAP, TAX_TYPE_MAP
+from core.config import ACTS_FOLDER, CHUNK_SIZE, CHUNK_OVERLAP, TAX_TYPE_MAP
 
 
 def _extract_metadata_from_filename(filename: str) -> dict:
@@ -109,6 +109,30 @@ def parse_pdf(pdf_path: Path) -> list[dict]:
             })
     doc.close()
     return pages
+
+
+def process_file(pdf_path: Path) -> list[Document]:
+    """Process a single PDF file into LlamaIndex Documents with rich metadata."""
+    file_metadata = _extract_metadata_from_filename(pdf_path.name)
+    pages = parse_pdf(pdf_path)
+
+    documents = []
+    for page_data in pages:
+        text = page_data["text"]
+        section = _detect_section_from_text(text)
+        tax_rates = _extract_tax_rates_from_text(text)
+
+        metadata = {
+            **file_metadata,
+            "page_number": page_data["page_number"],
+            "total_pages": page_data["total_pages"],
+            "section": section,
+            "tax_rates_mentioned": ", ".join(tax_rates) if tax_rates else "",
+            "has_tax_rates": len(tax_rates) > 0,
+        }
+        documents.append(Document(text=text, metadata=metadata))
+
+    return documents
 
 
 def process_acts(acts_folder: Path | None = None) -> list[Document]:

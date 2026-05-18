@@ -227,6 +227,127 @@
             flex-shrink: 0;
         }
 
+        /* Upload Section */
+        .upload-zone {
+            border: 2px dashed rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 16px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--gold-400);
+            background: rgba(201,162,39,0.06);
+        }
+
+        .upload-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .upload-icon {
+            font-size: 1.5rem;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .upload-label {
+            font-size: 0.78rem;
+            color: var(--gray-400);
+            line-height: 1.4;
+        }
+
+        .upload-label strong {
+            color: var(--gold-300);
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .upload-hint {
+            font-size: 0.68rem;
+            color: var(--gray-600);
+            margin-top: 4px;
+        }
+
+        .btn-upload {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: var(--navy-600);
+            color: var(--white);
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background 0.15s;
+        }
+
+        .btn-upload:hover:not(:disabled) { background: var(--navy-500); }
+        .btn-upload:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .upload-status {
+            margin-top: 8px;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            padding: 8px 10px;
+            display: none;
+        }
+
+        .upload-status.success {
+            display: block;
+            background: rgba(5,150,105,0.1);
+            border: 1px solid rgba(5,150,105,0.3);
+            color: #6ee7b7;
+        }
+
+        .upload-status.error {
+            display: block;
+            background: rgba(220,38,38,0.1);
+            border: 1px solid rgba(220,38,38,0.3);
+            color: #fca5a5;
+        }
+
+        .upload-status.loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--gray-400);
+        }
+
+        .upload-spinner {
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: var(--gold-400);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            flex-shrink: 0;
+        }
+
+        .selected-file {
+            margin-top: 8px;
+            font-size: 0.72rem;
+            color: var(--gold-300);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         /* Query History */
         .section-header {
             display: flex;
@@ -1129,6 +1250,26 @@
                 </div>
             </div>
 
+            <!-- Upload Document -->
+            <div class="sidebar-section">
+                <h3 class="sidebar-section-title">Upload Document</h3>
+                <div class="upload-zone" id="upload-zone">
+                    <input type="file" id="upload-input" accept=".pdf" />
+                    <span class="upload-icon">📄</span>
+                    <div class="upload-label">
+                        <strong>Drop a PDF here</strong>
+                        or click to browse
+                    </div>
+                    <div class="upload-hint">Sri Lankan tax act PDFs only</div>
+                </div>
+                <div class="selected-file" id="selected-file"></div>
+                <button class="btn-upload" id="btn-upload" disabled>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                    Ingest into Qdrant
+                </button>
+                <div class="upload-status" id="upload-status"></div>
+            </div>
+
             <!-- Query History -->
             <div class="sidebar-section" style="flex:1; border-bottom:none;">
                 <div class="section-header">
@@ -1630,6 +1771,84 @@
             return d.innerHTML;
         }
 
+        // ============ UPLOAD ============
+        var uploadFile = null;
+
+        async function uploadDocument(file) {
+            var form = new FormData();
+            form.append('file', file);
+            var res = await fetch(API_BASE + '/upload', { method: 'POST', body: form });
+            var data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Upload failed (' + res.status + ')');
+            return data;
+        }
+
+        function setUploadStatus(type, html) {
+            var el_status = document.getElementById('upload-status');
+            el_status.className = 'upload-status ' + type;
+            el_status.innerHTML = html;
+        }
+
+        function initUpload() {
+            var zone = document.getElementById('upload-zone');
+            var input = document.getElementById('upload-input');
+            var btnUpload = document.getElementById('btn-upload');
+            var selectedFile = document.getElementById('selected-file');
+
+            function selectFile(file) {
+                if (!file || !file.name.toLowerCase().endsWith('.pdf')) {
+                    setUploadStatus('error', '&#9888; Only PDF files are supported.');
+                    document.getElementById('upload-status').style.display = 'block';
+                    return;
+                }
+                uploadFile = file;
+                selectedFile.textContent = file.name;
+                btnUpload.disabled = false;
+                document.getElementById('upload-status').style.display = 'none';
+            }
+
+            input.addEventListener('change', function() {
+                if (this.files[0]) selectFile(this.files[0]);
+            });
+
+            zone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                zone.classList.add('dragover');
+            });
+
+            zone.addEventListener('dragleave', function() {
+                zone.classList.remove('dragover');
+            });
+
+            zone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                zone.classList.remove('dragover');
+                var file = e.dataTransfer.files[0];
+                if (file) selectFile(file);
+            });
+
+            btnUpload.addEventListener('click', async function() {
+                if (!uploadFile) return;
+                btnUpload.disabled = true;
+                setUploadStatus('loading', '<span class="upload-spinner"></span> Ingesting into Qdrant...');
+
+                try {
+                    var result = await uploadDocument(uploadFile);
+                    setUploadStatus('success',
+                        '&#10003; <strong>' + escapeHtml(result.filename) + '</strong> ingested &mdash; ' +
+                        result.pages_processed + ' pages, ' + result.total_chunks + ' chunks added.'
+                    );
+                    uploadFile = null;
+                    selectedFile.textContent = '';
+                    input.value = '';
+                    updateHealth();
+                } catch (err) {
+                    setUploadStatus('error', '&#9888; ' + escapeHtml(err.message));
+                    btnUpload.disabled = false;
+                }
+            });
+        }
+
         // ============ INIT ============
         function init() {
             // Submit
@@ -1689,6 +1908,9 @@
                 localStorage.removeItem(HISTORY_KEY);
                 renderHistory();
             });
+
+            // Upload
+            initUpload();
 
             // Boot
             renderHistory();

@@ -9,8 +9,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 
-from app.core.config import GOOGLE_API_KEY, GEMINI_MODEL
-from app.services.vector_store import get_vector_store
+from core.config import GOOGLE_API_KEY, GEMINI_MODEL
+from services.vector_store import get_vector_store
 
 # System prompt designed for tax advisory RAG
 TAX_ADVISOR_SYSTEM_PROMPT = """You are an expert Sri Lankan Tax Advisor AI assistant. Your role is to analyze tax scenarios and identify ALL applicable tax implications based on the provided legislative context from Sri Lankan tax acts.

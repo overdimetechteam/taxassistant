@@ -1,44 +1,35 @@
-"""
-Tax Advisor RAG Application
-Built with FastAPI + LangChain + LlamaIndex + Qdrant + Gemini 2.5 Flash
-"""
-
 import os
 from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+from flask import Flask, send_file, send_from_directory
+from flask_cors import CORS
 
-from app.api.routes import router
+from api.routes import api_bp
 
-STATIC_DIR = Path(__file__).parent / "static"
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 
-app = FastAPI(
-    title="Sri Lanka Tax Advisor API",
-    description=(
-        "RAG-powered tax advisory system that analyzes Sri Lankan tax acts "
-        "to identify all applicable tax implications, rates, and exemptions "
-        "for any given business scenario."
-    ),
-    version="1.0.0",
-)
+app = Flask(__name__, static_folder=None)
+CORS(app)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(router, prefix="/api/v1")
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+app.register_blueprint(api_bp, url_prefix="/api/v1")
 
 
-@app.get("/")
-async def root():
-    return FileResponse(str(STATIC_DIR / "index.html"))
+@app.route("/")
+def root():
+    return send_file(STATIC_DIR / "index.html")
 
 
+@app.route("/static/<path:filename>")
+def static_files(filename):
+    return send_from_directory(STATIC_DIR, filename)
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return "", 204
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(host="0.0.0.0", port=port, debug=debug)

@@ -1254,13 +1254,13 @@
             <div class="sidebar-section">
                 <h3 class="sidebar-section-title">Upload Document</h3>
                 <div class="upload-zone" id="upload-zone">
-                    <input type="file" id="upload-input" accept=".pdf" />
+                    <input type="file" id="upload-input" accept=".pdf" multiple />
                     <span class="upload-icon">📄</span>
                     <div class="upload-label">
-                        <strong>Drop a PDF here</strong>
+                        <strong>Drop PDFs here</strong>
                         or click to browse
                     </div>
-                    <div class="upload-hint">Sri Lankan tax act PDFs only</div>
+                    <div class="upload-hint">Multiple files supported</div>
                 </div>
                 <div class="selected-file" id="selected-file"></div>
                 <button class="btn-upload" id="btn-upload" disabled>
@@ -1772,11 +1772,11 @@
         }
 
         // ============ UPLOAD ============
-        var uploadFile = null;
+        var uploadFiles = [];
 
-        async function uploadDocument(file) {
+        async function uploadDocuments(files) {
             var form = new FormData();
-            form.append('file', file);
+            files.forEach(function(f) { form.append('files', f); });
             var res = await fetch(API_BASE + '/upload', { method: 'POST', body: form });
             var data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Upload failed (' + res.status + ')');
@@ -1784,9 +1784,9 @@
         }
 
         function setUploadStatus(type, html) {
-            var el_status = document.getElementById('upload-status');
-            el_status.className = 'upload-status ' + type;
-            el_status.innerHTML = html;
+            var s = document.getElementById('upload-status');
+            s.className = 'upload-status ' + type;
+            s.innerHTML = html;
         }
 
         function initUpload() {
@@ -1795,50 +1795,60 @@
             var btnUpload = document.getElementById('btn-upload');
             var selectedFile = document.getElementById('selected-file');
 
-            function selectFile(file) {
-                if (!file || !file.name.toLowerCase().endsWith('.pdf')) {
-                    setUploadStatus('error', '&#9888; Only PDF files are supported.');
-                    document.getElementById('upload-status').style.display = 'block';
-                    return;
+            function selectFiles(fileList) {
+                var pdfs = Array.from(fileList).filter(function(f) {
+                    return f.name.toLowerCase().endsWith('.pdf');
+                });
+                var nonPdfs = Array.from(fileList).filter(function(f) {
+                    return !f.name.toLowerCase().endsWith('.pdf');
+                });
+                if (nonPdfs.length) {
+                    setUploadStatus('error', '&#9888; Skipped non-PDF: ' + nonPdfs.map(function(f) { return escapeHtml(f.name); }).join(', '));
+                } else {
+                    document.getElementById('upload-status').style.display = 'none';
                 }
-                uploadFile = file;
-                selectedFile.textContent = file.name;
+                if (!pdfs.length) { btnUpload.disabled = true; return; }
+                uploadFiles = pdfs;
+                selectedFile.textContent = pdfs.length === 1
+                    ? pdfs[0].name
+                    : pdfs.length + ' files selected';
                 btnUpload.disabled = false;
-                document.getElementById('upload-status').style.display = 'none';
             }
 
             input.addEventListener('change', function() {
-                if (this.files[0]) selectFile(this.files[0]);
+                if (this.files.length) selectFiles(this.files);
             });
 
             zone.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 zone.classList.add('dragover');
             });
-
             zone.addEventListener('dragleave', function() {
                 zone.classList.remove('dragover');
             });
-
             zone.addEventListener('drop', function(e) {
                 e.preventDefault();
                 zone.classList.remove('dragover');
-                var file = e.dataTransfer.files[0];
-                if (file) selectFile(file);
+                if (e.dataTransfer.files.length) selectFiles(e.dataTransfer.files);
             });
 
             btnUpload.addEventListener('click', async function() {
-                if (!uploadFile) return;
+                if (!uploadFiles.length) return;
                 btnUpload.disabled = true;
-                setUploadStatus('loading', '<span class="upload-spinner"></span> Ingesting into Qdrant...');
+                setUploadStatus('loading', '<span class="upload-spinner"></span> Ingesting ' + uploadFiles.length + ' file(s) into Qdrant...');
 
                 try {
-                    var result = await uploadDocument(uploadFile);
+                    var result = await uploadDocuments(uploadFiles);
+                    var lines = result.results.map(function(r) {
+                        if (r.status === 'processed') {
+                            return '&#10003; ' + escapeHtml(r.filename) + ' &mdash; ' + r.pages_processed + ' pages, ' + r.chunks + ' chunks';
+                        }
+                        return '&#9888; ' + escapeHtml(r.filename) + ': ' + escapeHtml(r.error);
+                    });
                     setUploadStatus('success',
-                        '&#10003; <strong>' + escapeHtml(result.filename) + '</strong> ingested &mdash; ' +
-                        result.pages_processed + ' pages, ' + result.total_chunks + ' chunks added.'
+                        '<strong>' + result.total_chunks_ingested + ' chunks added</strong><br>' + lines.join('<br>')
                     );
-                    uploadFile = null;
+                    uploadFiles = [];
                     selectedFile.textContent = '';
                     input.value = '';
                     updateHealth();

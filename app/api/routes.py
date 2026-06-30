@@ -50,40 +50,63 @@ def ingest_acts():
 
 @api_bp.route("/upload", methods=["POST"])
 def upload_document():
-    if "file" not in request.files:
-        return jsonify({"error": "No file provided"}), 400
+    files = request.files.getlist("files")
+    if not files or all(f.filename == "" for f in files):
+        return jsonify({"error": "No files provided"}), 400
 
-    file = request.files["file"]
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
-        return jsonify({"error": "Only PDF files are supported"}), 400
+    non_pdf = [f.filename for f in files if not f.filename.lower().endswith(".pdf")]
+    if non_pdf:
+        return jsonify({"error": f"Only PDF files are supported: {', '.join(non_pdf)}"}), 400
 
-    tmp_path = None
+    results = []
+    all_lc_docs = []
+    tmp_paths = []
+
     try:
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-            file.save(tmp.name)
-            tmp_path = Path(tmp.name)
+        for file in files:
+            tmp_path = None
+            try:
+                with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                    file.save(tmp.name)
+                    tmp_path = Path(tmp.name)
 
-        # Rename temp file to use the original filename for metadata extraction
-        named_path = tmp_path.parent / file.filename
-        tmp_path.rename(named_path)
-        tmp_path = named_path
+                named_path = tmp_path.parent / file.filename
+                tmp_path.rename(named_path)
+                tmp_path = named_path
+                tmp_paths.append(tmp_path)
 
-        documents = process_file(tmp_path)
-        chunked = chunk_documents(documents)
-        lc_docs = [{"text": doc.text, "metadata": doc.metadata} for doc in chunked]
-        total_chunks = ingest_documents(lc_docs)
+                documents = process_file(tmp_path)
+                chunked = chunk_documents(documents)
+                lc_docs = [{"text": doc.text, "metadata": doc.metadata} for doc in chunked]
+                all_lc_docs.extend(lc_docs)
+
+                results.append({
+                    "filename": file.filename,
+                    "pages_processed": len(documents),
+                    "chunks": len(lc_docs),
+                    "status": "processed",
+                })
+            except Exception as e:
+                results.append({
+                    "filename": file.filename,
+                    "status": "error",
+                    "error": str(e),
+                })
+
+        total_chunks = ingest_documents(all_lc_docs) if all_lc_docs else 0
 
         return jsonify({
             "status": "success",
-            "filename": file.filename,
-            "pages_processed": len(documents),
-            "total_chunks": total_chunks,
+            "files_processed": len([r for r in results if r["status"] == "processed"]),
+            "total_chunks_ingested": total_chunks,
+            "results": results,
         })
     except Exception as e:
         return jsonify({"error": f"Upload failed: {str(e)}"}), 500
     finally:
-        if tmp_path and tmp_path.exists():
-            os.unlink(tmp_path)
+        for p in tmp_paths:
+            if p and p.exists():
+                os.unlink(p)
 
 
 @api_bp.route("/query", methods=["POST"])

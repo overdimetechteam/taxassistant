@@ -2,7 +2,7 @@
 Qdrant vector store service.
 Manages collection creation, document ingestion, and similarity search
 with optimized payload schema and indexing for tax act retrieval.
-Uses Qdrant Cloud.
+Uses Qdrant Dedicated Cloud Cluster.
 """
 
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -22,11 +22,12 @@ from core.config import (
     QDRANT_API_KEY,
     QDRANT_CLUSTER_ENDPOINT,
     QDRANT_COLLECTION_NAME,
+    QDRANT_PREFER_GRPC,
+    QDRANT_BATCH_SIZE,
 )
 
 
 def get_embeddings() -> GoogleGenerativeAIEmbeddings:
-    """Get the Google Generative AI embedding model."""
     return GoogleGenerativeAIEmbeddings(
         model=EMBEDDING_MODEL,
         google_api_key=GOOGLE_API_KEY,
@@ -34,100 +35,87 @@ def get_embeddings() -> GoogleGenerativeAIEmbeddings:
 
 
 def get_qdrant_client() -> QdrantClient:
-    """Get Qdrant client connected to Qdrant Cloud with extended timeout."""
     return QdrantClient(
         url=QDRANT_CLUSTER_ENDPOINT,
         api_key=QDRANT_API_KEY,
-        timeout=720,
+        prefer_grpc=QDRANT_PREFER_GRPC,
     )
 
 
 def _create_payload_indexes(client: QdrantClient):
-    """Create all payload indexes on the collection for fast filtered search."""
-    client.create_payload_index(
-        collection_name=QDRANT_COLLECTION_NAME,
-        field_name="metadata.tax_type_code",
-        field_schema=PayloadSchemaType.KEYWORD,
-    )
-    client.create_payload_index(
-        collection_name=QDRANT_COLLECTION_NAME,
-        field_name="metadata.year",
-        field_schema=PayloadSchemaType.INTEGER,
-    )
-    client.create_payload_index(
-        collection_name=QDRANT_COLLECTION_NAME,
-        field_name="metadata.act_number",
-        field_schema=PayloadSchemaType.KEYWORD,
-    )
-    client.create_payload_index(
-        collection_name=QDRANT_COLLECTION_NAME,
-        field_name="metadata.tax_type",
-        field_schema=PayloadSchemaType.KEYWORD,
-    )
-    client.create_payload_index(
-        collection_name=QDRANT_COLLECTION_NAME,
-        field_name="metadata.has_tax_rates",
-        field_schema=PayloadSchemaType.BOOL,
-    )
-    client.create_payload_index(
-        collection_name=QDRANT_COLLECTION_NAME,
-        field_name="metadata.section",
-        field_schema=TextIndexParams(
-            type="text",
-            tokenizer=TokenizerType.WORD,
-            min_token_len=1,
-            max_token_len=20,
-            lowercase=True,
-        ),
-    )
+    """Create payload indexes — skips silently if index already exists."""
+    index_configs = [
+        ("metadata.tax_type_code", PayloadSchemaType.KEYWORD),
+        ("metadata.year",          PayloadSchemaType.INTEGER),
+        ("metadata.act_number",    PayloadSchemaType.KEYWORD),
+        ("metadata.tax_type",      PayloadSchemaType.KEYWORD),
+        ("metadata.has_tax_rates", PayloadSchemaType.BOOL),
+    ]
+    for field, schema in index_configs:
+        try:
+            client.create_payload_index(
+                collection_name=QDRANT_COLLECTION_NAME,
+                field_name=field,
+                field_schema=schema,
+            )
+        except Exception:
+            pass  # index already exists
+
+    try:
+        client.create_payload_index(
+            collection_name=QDRANT_COLLECTION_NAME,
+            field_name="metadata.section",
+            field_schema=TextIndexParams(
+                type="text",
+                tokenizer=TokenizerType.WORD,
+                min_token_len=1,
+                max_token_len=20,
+                lowercase=True,
+            ),
+        )
+    except Exception:
+        pass
 
 
-def create_collection_with_schema(client: QdrantClient, vector_size: int = 3072):
-    """
-    Create Qdrant collection with optimized schema for tax act retrieval.
-    """
-    collections = client.get_collections().collections
-    existing_names = [c.name for c in collections]
-
-    if QDRANT_COLLECTION_NAME in existing_names:
-        return
-
-    client.create_collection(
-        collection_name=QDRANT_COLLECTION_NAME,
-        vectors_config=VectorParams(
-            size=vector_size,
-            distance=Distance.COSINE,
-        ),
-    )
-    _create_payload_indexes(client)
+def _ensure_collection(client: QdrantClient, vector_size: int = 3072):
+    """Create the collection and indexes if they don't exist yet."""
+    existing = [c.name for c in client.get_collections().collections]
+    if QDRANT_COLLECTION_NAME not in existing:
+        client.create_collection(
+            collection_name=QDRANT_COLLECTION_NAME,
+            vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
+        )
+        _create_payload_indexes(client)
 
 
 def get_vector_store() -> QdrantVectorStore:
-    """
-    Get LangChain-compatible Qdrant vector store instance.
-    Connects to Qdrant Cloud.
-    """
     embeddings = get_embeddings()
-
     return QdrantVectorStore.from_existing_collection(
         collection_name=QDRANT_COLLECTION_NAME,
         embedding=embeddings,
         url=QDRANT_CLUSTER_ENDPOINT,
         api_key=QDRANT_API_KEY,
+        prefer_grpc=QDRANT_PREFER_GRPC,
     )
 
 
-def ingest_documents(documents: list[dict], batch_size: int = 300) -> int:
+def ingest_documents(documents: list[dict], batch_size: int | None = None) -> int:
     """
-    Ingest processed document chunks into Qdrant Cloud in batches.
+    Append document chunks to the existing Qdrant collection.
+    Creates the collection if it does not exist yet.
+    Never wipes existing data.
 
     Args:
-        documents: List of dicts with 'text' and 'metadata' keys.
-        batch_size: Number of documents per upload batch.
+        documents:  List of dicts with 'text' and 'metadata' keys.
+        batch_size: Chunks per upload batch (defaults to QDRANT_BATCH_SIZE).
 
     Returns:
-        Number of documents ingested.
+        Number of chunks ingested in this call.
     """
+    if not documents:
+        return 0
+
+    batch_size = batch_size or QDRANT_BATCH_SIZE
     embeddings = get_embeddings()
 
     from langchain_core.documents import Document as LCDocument
@@ -137,50 +125,36 @@ def ingest_documents(documents: list[dict], batch_size: int = 300) -> int:
         for doc in documents
     ]
 
-    # First batch creates the collection (force_recreate)
-    first_batch = lc_docs[:batch_size]
-    QdrantVectorStore.from_documents(
-        documents=first_batch,
+    # Ensure collection exists before adding
+    client = get_qdrant_client()
+    try:
+        _ensure_collection(client)
+    finally:
+        client.close()
+
+    # Add all batches to the existing collection
+    vector_store = QdrantVectorStore.from_existing_collection(
+        collection_name=QDRANT_COLLECTION_NAME,
         embedding=embeddings,
         url=QDRANT_CLUSTER_ENDPOINT,
         api_key=QDRANT_API_KEY,
-        collection_name=QDRANT_COLLECTION_NAME,
-        force_recreate=True,
-        timeout=720,
+        prefer_grpc=QDRANT_PREFER_GRPC,
     )
-    print(f"      Batch 1/{(len(lc_docs) + batch_size - 1) // batch_size} uploaded ({len(first_batch)} docs)")
 
-    # Remaining batches add to existing collection
-    if len(lc_docs) > batch_size:
-        vector_store = QdrantVectorStore.from_existing_collection(
-            collection_name=QDRANT_COLLECTION_NAME,
-            embedding=embeddings,
-            url=QDRANT_CLUSTER_ENDPOINT,
-            api_key=QDRANT_API_KEY,
-        )
-        for i in range(batch_size, len(lc_docs), batch_size):
-            batch = lc_docs[i:i + batch_size]
-            vector_store.add_documents(batch)
-            batch_num = (i // batch_size) + 1
-            total_batches = (len(lc_docs) + batch_size - 1) // batch_size
-            print(f"      Batch {batch_num}/{total_batches} uploaded ({len(batch)} docs)")
-
-    # Apply payload indexes
-    client = get_qdrant_client()
-    _create_payload_indexes(client)
-    client.close()
+    total_batches = (len(lc_docs) + batch_size - 1) // batch_size
+    for i in range(0, len(lc_docs), batch_size):
+        batch = lc_docs[i:i + batch_size]
+        vector_store.add_documents(batch)
+        print(f"      Batch {i // batch_size + 1}/{total_batches} uploaded ({len(batch)} docs)")
 
     return len(lc_docs)
 
 
 def get_collection_info() -> dict:
-    """Get information about the Qdrant Cloud collection."""
     client = get_qdrant_client()
     try:
-        collections = client.get_collections().collections
-        existing_names = [c.name for c in collections]
-
-        if QDRANT_COLLECTION_NAME not in existing_names:
+        existing = [c.name for c in client.get_collections().collections]
+        if QDRANT_COLLECTION_NAME not in existing:
             return {"exists": False, "documents_count": 0}
 
         info = client.get_collection(QDRANT_COLLECTION_NAME)

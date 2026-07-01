@@ -2,10 +2,11 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
-
 # Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# Always load from project root .env — prevents shadowing by any app/.env leftover
+load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
 ACTS_FOLDER = Path(os.getenv("ACTS_FOLDER", str(BASE_DIR / "Acts")))
 
 # Google Gemini
@@ -18,6 +19,8 @@ QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "tax_acts")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "")
 QDRANT_CLUSTER_ENDPOINT = os.getenv("QDRANT_CLUSTER_ENDPOINT", "")
 QDRANT_PREFER_GRPC = os.getenv("QDRANT_PREFER_GRPC", "true").lower() == "true"
+QDRANT_GRPC_PORT = int(os.getenv("QDRANT_GRPC_PORT", "6334"))
+QDRANT_TIMEOUT = int(os.getenv("QDRANT_TIMEOUT", "30"))
 QDRANT_BATCH_SIZE = int(os.getenv("QDRANT_BATCH_SIZE", "500"))
 
 # Chunking

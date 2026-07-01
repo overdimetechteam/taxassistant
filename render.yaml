@@ -3,7 +3,7 @@ services:
     name: tax-advisor
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: cd app && gunicorn main:app --bind 0.0.0.0:$PORT --workers 2
+    startCommand: cd app && gunicorn main:app --bind 0.0.0.0:$PORT --workers 4 --timeout 120
     plan: free
     envVars:
       - key: GOOGLE_API_KEY
@@ -16,6 +16,10 @@ services:
         value: tax_acts
       - key: QDRANT_PREFER_GRPC
         value: "true"
+      - key: QDRANT_GRPC_PORT
+        value: "6334"
+      - key: QDRANT_TIMEOUT
+        value: "30"
       - key: QDRANT_BATCH_SIZE
         value: "500"
       - key: GEMINI_MODEL

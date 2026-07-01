@@ -11,8 +11,8 @@ langchain-community>=0.3.14
 google-generativeai>=0.8.4
 
 # Vector Store
-qdrant-client>=1.12.1
-langchain-qdrant>=0.2.0
+qdrant-client>=1.18.0
+langchain-qdrant>=1.1.0
 
 # PDF Processing
 pymupdf>=1.25.3
